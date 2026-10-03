@@ -94,15 +94,18 @@ Unknown keys are reported on startup as `Unused config key: …`, so a plain
 `alacritty` run validates the file.
 
 > [!NOTE]
-> Alacritty (through winit 0.30) issues that request with **KDE's**
+> **Stock** alacritty (through winit 0.30) issues that request with **KDE's**
 > `org_kde_kwin_blur_manager`, while labwc-blur serves
-> `ext-background-effect-v1`. On labwc the request finds no such global and is
-> dropped, so today you get the transparency, not the blur. winit 0.30.13 has
-> no `ext-background-effect-v1` code path at all
-> (`src/platform_impl/linux/wayland/types/kwin_blur.rs`), so this works on
-> KDE Wayland and macOS only — and starts working here as soon as
-> labwc-blur grows an `org_kde_kwin_blur` shim or winit learns
-> `ext-background-effect-v1`.
+> `ext-background-effect-v1`. The request finds no such global and is dropped,
+> so on labwc you get the transparency but not the blur. winit 0.30.13 has no
+> `ext-background-effect-v1` code path at all
+> (`src/platform_impl/linux/wayland/types/kwin_blur.rs`) — that support only
+> exists on winit master (0.31, unreleased) while alacritty still requires
+> 0.30, so there is no update that fixes it.
+>
+> Until winit releases it, build the **`alacritty-blur`** package
+> (`~/Code/alacritty-blur-pkg`): stock alacritty 0.17.0 against a winit 0.30.13
+> with `ext-background-effect-v1` backported, which blurs on labwc today.
 
 ## Troubleshooting
 
