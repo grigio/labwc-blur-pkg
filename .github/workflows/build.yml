@@ -35,7 +35,7 @@ jobs:
           echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
           chmod 440 /etc/sudoers.d/builder
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Hand the workspace to the build user
         run: chown -R builder:builder "$GITHUB_WORKSPACE"
@@ -102,7 +102,7 @@ jobs:
           labwc --version
 
       - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: arch-packages
           path: |
