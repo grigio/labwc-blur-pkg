@@ -1,0 +1,16 @@
+# makepkg workdirs
+/src/
+/pkg/
+/scenefx/src/
+/scenefx/pkg/
+
+# local bare mirror of ~/Code/labwc-blur (build cache)
+/labwc-blur/
+
+# scratch
+/tmp/
+*.log
+
+# built packages (uploaded by CI as artifacts, not tracked)
+*.pkg.tar.zst
+/scenefx/scenefx/

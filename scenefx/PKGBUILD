@@ -1,0 +1,53 @@
+# Maintainer: local build of the labwc-blur fork
+#
+# SceneFX (wlrfx/scenefx): drop-in replacement of the wlr_scene API for
+# wlroots-0.20 which adds wlr_scene_blur nodes. labwc-blur uses it to render
+# the blur regions requested through ext-background-effect-v1.
+#
+# The source is pinned to the commit labwc-blur was tested against (same as
+# the development install used during testing). Remove the #commit=... to
+# follow upstream master instead.
+
+pkgname=scenefx
+pkgver=0.5.0.gdc3cddc
+pkgrel=1
+pkgdesc='Wlroots effects library (SceneFX) providing wlr_scene blur nodes'
+arch=('x86_64')
+url="https://github.com/wlrfx/scenefx"
+license=('MIT')
+depends=(
+  glibc
+  libwlroots-0.20.so
+  libwayland-server.so
+  libdrm
+  mesa
+  pixman
+  libEGL.so
+  libGLESv2.so
+  liblcms2.so
+)
+makedepends=(
+  git
+  meson
+  wayland-protocols
+)
+provides=("scenefx-0.5=${pkgver}")
+source=(
+  "scenefx::git+https://github.com/wlrfx/scenefx.git#commit=dc3cddc3d40def29ed7a5ac16d3a48d348a8d75a"
+)
+b2sums=('SKIP')
+
+pkgver() {
+  cd scenefx
+  printf '0.5.0.g%s' \
+    "$(git rev-parse --short HEAD)"
+}
+
+build() {
+  arch-meson -Dexamples=false scenefx build
+  meson compile -C build
+}
+
+package() {
+  meson install -C build --destdir "$pkgdir"
+}

@@ -1,0 +1,69 @@
+name: Build Arch packages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'PKGBUILD'
+      - 'scenefx/PKGBUILD'
+      - '.github/workflows/build.yml'
+  schedule:
+    # daily: picks up new commits pushed to grigio/labwc ext-background-effect
+    - cron: '23 4 * * *'
+  workflow_dispatch:
+  # Optional: trigger from the labwc repo with
+  #   curl -X POST -H "Authorization: Bearer $TOKEN" \
+  #     https://api.github.com/repos/grigio/labwc-blur-pkg/dispatches \
+  #     -d '{"event_type":"build-labwc-blur"}'
+  repository_dispatch:
+    types: [build-labwc-blur]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: archlinux:base-devel
+    steps:
+      - name: Base packages + unprivileged build user
+        run: |
+          pacman -Syu --noconfirm
+          pacman -S --noconfirm git
+          useradd -m builder
+          echo 'builder ALL=(ALL) NOPASSWD: ALL' > /etc/sudoers.d/builder
+          chmod 440 /etc/sudoers.d/builder
+
+      - uses: actions/checkout@v4
+
+      - name: Hand the workspace to the build user
+        run: chown -R builder:builder "$GITHUB_WORKSPACE"
+
+      - name: Build + install scenefx (local dependency, not in the repos)
+        working-directory: scenefx
+        run: su builder -c 'HOME=/home/builder makepkg -sCi --noconfirm'
+
+      - name: Build labwc-blur (grigio/labwc @ ext-background-effect)
+        run: su builder -c 'HOME=/home/builder makepkg -sCi --noconfirm'
+
+      - name: Show packages
+        run: ls -l *.pkg.tar.zst scenefx/*.pkg.tar.zst
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: arch-packages
+          path: |
+            *.pkg.tar.zst
+            scenefx/*.pkg.tar.zst
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach packages to a GitHub release (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            *.pkg.tar.zst
+            scenefx/*.pkg.tar.zst
