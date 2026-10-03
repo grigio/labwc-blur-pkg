@@ -31,7 +31,15 @@ makedepends=(
   meson
   wayland-protocols
 )
-provides=("scenefx-0.5=${pkgver}")
+# `conflicts` matters: CachyOS ships scenefx-wlroots20-git, which also provides
+# the virtual name 'scenefx' but has SONAME libscenefx-0.5.so (not
+# libscenefx-0.5.so.0). Without this, `pacman -U` fails on a file conflict and
+# labwc-blur ends up linked against a library it cannot load.
+provides=(
+  "scenefx=${pkgver}"
+  "scenefx-0.5=${pkgver}"
+)
+conflicts=('scenefx-wlroots20-git' 'scenefx')
 source=(
   "scenefx::git+https://github.com/wlrfx/scenefx.git#commit=dc3cddc3d40def29ed7a5ac16d3a48d348a8d75a"
 )

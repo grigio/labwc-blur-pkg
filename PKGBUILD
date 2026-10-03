@@ -12,7 +12,7 @@
 
 pkgname=labwc-blur
 pkgver=0.20.2.34.g1d2cb20e
-pkgrel=4
+pkgrel=5
 pkgdesc='stacking wayland compositor with look and feel from openbox (fork with ext-background-effect-v1 support)'
 url="https://github.com/grigio/labwc"
 arch=('x86_64')
@@ -31,7 +31,10 @@ depends=(
   libxml2
   pango
   pixman
-  scenefx
+  # Versioned, not the bare virtual name: scenefx-wlroots20-git (CachyOS)
+  # also provides 'scenefx' but ships SONAME libscenefx-0.5.so, while this
+  # binary needs libscenefx-0.5.so.0 -> the session would fail to start.
+  scenefx-0.5
   seatd
   ttf-font
   wayland
