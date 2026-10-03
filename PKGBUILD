@@ -55,6 +55,10 @@ source=(
 b2sums=('SKIP')
 
 pkgver() {
+  # Needs the version tags on the fork: GitHub does not copy tags when
+  # labwc/labwc is forked, so `git push origin --tags` from the local
+  # checkout must be run once (and after new upstream releases), otherwise
+  # git describe fails and makepkg aborts with "pkgver is not allowed to be empty".
   cd labwc-blur
   git describe --tags --long | sed 's/-/./g'
 }

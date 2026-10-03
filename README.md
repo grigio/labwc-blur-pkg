@@ -59,3 +59,8 @@ makepkg -sCi                          # labwc-blur
 an old `src/labwc-blur` checkout that still points at a `file://` URL).
 Remember: the PKGBUILD always builds what is **pushed** to the
 `ext-background-effect` branch — commit and push `~/Code/labwc-blur` first.
+
+> [!NOTE]
+> The fork needs the upstream version tags for `pkgver()`:
+> `git push origin --tags` from `~/Code/labwc-blur` (done once already),
+> repeat after new upstream releases.
