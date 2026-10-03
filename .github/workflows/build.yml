@@ -50,6 +50,57 @@ jobs:
       - name: Show packages
         run: ls -l *.pkg.tar.zst scenefx/*.pkg.tar.zst
 
+      # Guards the two ways this pairing can break:
+      #   1. labwc-blur linking a soname that our scenefx build does not ship
+      #      (or ships under a different soname) -> greetd session dies with
+      #      'libscenefx-0.5.so.0 => not found'
+      #   2. the versioned dependency being replaced by the bare virtual name
+      #      'scenefx', which other distro packages provide with another soname
+      - name: Sanity check the packages (soname + real install)
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+
+          labwc_pkgs=(labwc-blur-*.pkg.tar.zst)
+          scenefx_pkgs=(scenefx/scenefx-*.pkg.tar.zst)
+          test "${#labwc_pkgs[@]}" -gt 0 || { echo "::error::no labwc-blur package"; exit 1; }
+          test "${#scenefx_pkgs[@]}" -gt 0 || { echo "::error::no scenefx package"; exit 1; }
+
+          # -- inspect the packaged files, not the container's installed copy
+          tmp=$(mktemp -d)
+          for p in "${scenefx_pkgs[@]}" "${labwc_pkgs[@]}"; do
+            case "$p" in *-debug-*) continue;; esac
+            bsdtar -xf "$p" -C "$tmp"
+          done
+
+          need=$(readelf -d "$tmp/usr/bin/labwc" \
+            | sed -n 's/.*Shared library: \[\(libscenefx[^]]*\)\].*/\1/p')
+          echo "labwc NEEDED libscenefx: ${need:-<none>}"
+          test -n "$need" || { echo "::error::labwc does not link scenefx?"; exit 1; }
+          test -e "$tmp/usr/lib/$need" \
+            || { echo "::error::scenefx package does not ship $need"; exit 1; }
+
+          soname=$(readelf -d "$tmp/usr/lib/$need" \
+            | sed -n 's/.*SONAME.*\[\(.*\)\].*/\1/p')
+          echo "packaged scenefx SONAME: $soname"
+          test "$soname" = "$need" \
+            || { echo "::error::soname '$soname' != needed '$need'"; exit 1; }
+          rm -rf "$tmp"
+
+          # -- end to end: install exactly what a user downloads
+          pacman -U --noconfirm "${scenefx_pkgs[@]}" "${labwc_pkgs[@]}"
+          pacman -Q labwc-blur scenefx
+          pacman -Qi labwc-blur | grep -q 'scenefx-0.5' \
+            || { echo "::error::labwc-blur must depend on the versioned scenefx-0.5"; exit 1; }
+
+          ldd /usr/bin/labwc | tee ldd.out
+          if grep -q 'not found' ldd.out; then
+            echo "::error::unresolved shared libraries in /usr/bin/labwc"
+            grep 'not found' ldd.out
+            exit 1
+          fi
+          labwc --version
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -88,11 +139,18 @@ jobs:
           fi
           notes="Automatic build of [grigio/labwc ext-background-effect](https://github.com/grigio/labwc/tree/ext-background-effect) @ \`$sha\`.
 
-          Install:
+          Install **both** packages — \`labwc-blur\` links against the soname
+          shipped by this \`scenefx\` build (\`libscenefx-0.5.so.0\`):
 
           \`\`\`sh
-          sudo pacman -U labwc-blur-*.pkg.tar.zst
-          \`\`\`"
+          sudo pacman -U scenefx-*.pkg.tar.zst labwc-blur-*.pkg.tar.zst
+          \`\`\`
+
+          If pacman asks to remove \`scenefx-wlroots20-git\` (CachyOS) and/or the
+          official \`labwc\`, answer **yes**: the soname / package name differs.
+
+          If the session fails to start, check \`ldd /usr/bin/labwc | grep scenefx\`
+          (it must print a path, not \`not found\`)."
 
           if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release $tag exists, refreshing notes + assets"
