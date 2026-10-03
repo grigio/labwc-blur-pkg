@@ -8,11 +8,15 @@ built from the
 GitHub Actions builds `labwc-blur` (+ its `scenefx` dependency) automatically
 on every push here, daily, and on demand.
 
-## Install (from CI)
+## Install (from Releases)
 
-1. Open **Actions → “Build Arch packages” → latest green run**
-2. Download the **`arch-packages`** artifact (30-day retention)
-3. Install:
+Every successful CI run publishes a **release tagged `v<pkgver>-<pkgrel>`**
+(e.g. [`v0.20.2.34.g1d2cb20e-4`](https://github.com/grigio/labwc-blur-pkg/releases))
+— the tag embeds the labwc short-sha, so **every new commit on
+`ext-background-effect` gets its own release**:
+
+1. Open **Releases** and take the assets of the newest release
+2. Install:
 
 ```sh
 sudo pacman -U labwc-blur-*.pkg.tar.zst
@@ -20,13 +24,16 @@ sudo pacman -U labwc-blur-*.pkg.tar.zst
 sudo pacman -U scenefx-*.pkg.tar.zst
 ```
 
+The same files are also attached to each run as the **`arch-packages`**
+artifact (30-day retention) if you prefer Actions → Artifacts.
+
 Notes:
 
 * `labwc-blur` **conflicts with the official `labwc`** package (replaces it).
 * Every run also ships `labwc-blur-debug` (debug symbols) and
   `scenefx-debug`.
-* Pushing a tag (e.g. `v0.20.2.35.gabcdef1`) attaches the same files to a
-  GitHub release, which does not expire.
+* A rebuild of an unchanged version refreshes the existing release assets
+  (`--clobber`) instead of creating a duplicate release.
 
 ## Contents
 
@@ -40,8 +47,8 @@ Notes:
 
 * **push** to this repo, when `PKGBUILD`, `scenefx/PKGBUILD` or the workflow
   change,
-* **schedule**: daily at 04:23 UTC — picks up new commits pushed to
-  `grigio/labwc` `ext-background-effect`,
+* **schedule**: every 3 hours — picks up new commits pushed to
+  `grigio/labwc` `ext-background-effect` and publishes their release,
 * **workflow_dispatch**: manual run from the Actions tab,
 * **repository_dispatch** (`build-labwc-blur`): optional push-trigger from the
   labwc repo, see the comment inside the workflow.
